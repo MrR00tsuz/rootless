@@ -1,0 +1,1202 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rootless</title>
+    <link rel="icon" type="image/png" href="imgs/logo.png">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 0; 
+            padding: 0; 
+            background: #1a1a1a;
+            color: #fff;
+        }
+        
+        .header {
+            background: #1a1a1a;
+            padding: 10px;
+            border-bottom: 1px solid #333;
+            display: flex;
+            align-items: center;
+        }
+
+        .header input[type="text"] {
+            background: #333;
+            border: none;
+            padding: 8px 15px;
+            color: #fff;
+            margin-left: 10px;
+            width: 300px;
+        }
+
+        .header button {
+            background: #76b852;
+            border: none;
+            color: white;
+            padding: 8px 15px;
+            cursor: pointer;
+            margin-left: 5px;
+        }
+
+        #map { 
+            height: calc(100vh - 50px);
+            width: 100%;
+            margin-left: 300px;
+            width: calc(100% - 300px);
+        }
+
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 50px;
+            width: 300px;
+            background: rgba(26, 26, 26, 0.9);
+            height: calc(100vh - 50px);
+            padding: 20px;
+            overflow-y: auto;
+            box-sizing: border-box;
+        }
+
+        .sidebar-section {
+            margin-bottom: 20px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 20px;
+        }
+
+        .sidebar-section h3 {
+            color: #fff;
+            margin-top: 0;
+            font-size: 14px;
+            text-transform: uppercase;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+            color: #ccc;
+            font-size: 13px;
+        }
+
+        .custom-popup {
+            background: #1a1a1a;
+            color: #fff;
+            padding: 15px;
+        }
+
+        .custom-popup h3 {
+            margin: 0 0 10px 0;
+            color: #fff;
+        }
+
+        .custom-popup table {
+            width: 100%;
+            margin: 0;
+        }
+
+        .custom-popup td {
+            padding: 5px;
+            border: none;
+            color: #ccc;
+        }
+
+        .custom-popup td:first-child {
+            font-weight: bold;
+            width: 120px;
+            color: #fff;
+        }
+
+        .port-badge {
+            display: inline-block;
+            padding: 2px 6px;
+            background: #76b852;
+            color: white;
+            border-radius: 3px;
+            margin: 2px;
+        }
+
+        .action-button {
+            background: #76b852;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            width: 100%;
+            margin-top: 10px;
+            cursor: pointer;
+        }
+
+        .action-button:hover {
+            background: #669c45;
+        }
+
+        #loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            padding: 15px 30px;
+            border-radius: 4px;
+            z-index: 1000;
+        }
+
+        .leaflet-container {
+            background: #1a1a1a;
+        }
+
+        .leaflet-popup-content-wrapper {
+            background: #1a1a1a;
+            color: #fff;
+        }
+
+        .leaflet-popup-tip {
+            background: #1a1a1a;
+        }
+
+        input[type="text"], input[type="number"] {
+            background: #333;
+            border: none;
+            color: #fff;
+            padding: 8px;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        .button-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .popup-button {
+            background: #76b852;
+            color: white;
+            border: none;
+            padding: 8px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 12px;
+            transition: background 0.3s;
+        }
+
+        .popup-button:hover {
+            background: #669c45;
+        }
+
+        .popup-button.shodan {
+            background: #2A2A2A;
+        }
+
+        .popup-button.shodan:hover {
+            background: #404040;
+        }
+
+        .search-modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #1a1a1a;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            z-index: 1000;
+            width: 300px;
+        }
+
+        .search-modal h3 {
+            margin: 0 0 15px 0;
+            color: #fff;
+        }
+
+        .search-modal input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 15px;
+            background: #333;
+            border: none;
+            color: #fff;
+        }
+
+        .search-modal .button-container {
+            display: flex;
+            gap: 10px;
+        }
+
+        .search-modal button {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            cursor: pointer;
+            color: white;
+        }
+
+        .search-modal button.search {
+            background: #76b852;
+        }
+
+        .search-modal button.cancel {
+            background: #666;
+        }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 999;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #76b852;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 4px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            z-index: 1000;
+            display: none;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+            }
+            to {
+                opacity: 0;
+            }
+        }
+
+        .lang-switch {
+            position: absolute;
+            right: 20px;
+            top: 15px;
+            background: #76b852;
+            color: white;
+            border: none;
+            padding: 5px 15px;
+            cursor: pointer;
+            border-radius: 4px;
+            z-index: 1000;
+        }
+        .lang-switch:hover {
+            background: #669c45;
+        }
+
+        .field-selector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin: 10px 0;
+        }
+
+        .field-checkbox {
+            display: flex;
+            align-items: center;
+            background: #333;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .field-checkbox input {
+            margin-right: 5px;
+        }
+
+        .field-checkbox:hover {
+            background: #444;
+        }
+
+        .export-options {
+            margin-top: 10px;
+        }
+
+        .separator-type {
+            background: #333;
+            border: none;
+            color: #fff;
+            padding: 5px;
+            margin-bottom: 10px;
+            width: 100%;
+        }
+
+        .header-buttons {
+            position: absolute;
+            right: 20px;
+            top: 10px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .header-button {
+            background: #76b852;
+            color: white;
+            border: none;
+            padding: 5px 15px;
+            cursor: pointer;
+            border-radius: 4px;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+        }
+
+        .header-button:hover {
+            background: #669c45;
+        }
+
+        .header-button i {
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <img src="imgs/logo.png" height="30">
+        <div class="header-buttons">
+            <a href="https://github.com/MrR00tsuz" target="_blank" class="header-button">
+                <i class="fab fa-github"></i> GitHub
+            </a>
+            <button class="header-button" onclick="toggleLanguage()" id="langSwitch">EN</button>
+        </div>
+    </div>
+
+    <!-- Arama Modal -->
+    <div class="modal-overlay" id="modalOverlay"></div>
+    <div class="search-modal" id="searchModal">
+        <h3 data-lang="search-title">Arama Terimi Girin</h3>
+        <input type="text" id="search-term" data-lang-placeholder="search-placeholder" placeholder="Örn: mikrotik, cisco, product:nginx, org:microsoft">
+        <div class="button-container">
+            <button class="search" id="startSearch" data-lang="start-search">Aramayı Başlat</button>
+            <button class="cancel" id="cancelSearch" data-lang="cancel">İptal</button>
+        </div>
+    </div>
+
+    <div class="sidebar">
+        <div class="sidebar-section" id="total-results">
+            <h3 data-lang="total-results">Toplam Sonuç</h3>
+            <div id="results-count" style="font-size:24px; color:#76b852;">0</div>
+        </div>
+
+        <div class="sidebar-section">
+            <h3 data-lang="top-ports">En Çok Kullanılan Portlar</h3>
+            <div id="top-ports"></div>
+        </div>
+
+        <div class="sidebar-section">
+            <h3 data-lang="top-countries">En Çok Bulunan Ülkeler</h3>
+            <div id="top-countries"></div>
+            </div>
+
+        <div class="sidebar-section">
+            <h3 data-lang="scan-options">Tarama Seçenekleri</h3>
+            <input type="text" id="country-name" data-lang-placeholder="country-name-placeholder" placeholder="Ülke adı (örn: Turkey)">
+            <input type="text" id="country-search-term" data-lang-placeholder="country-search-placeholder" placeholder="Örn: server:apache, os:linux, ssl:true">
+            <input type="number" id="grid-size" min="5" max="100" step="1" value="22">
+            <button id="start-country-scan" class="action-button" data-lang="start-scan">Tarama Başlat</button>
+            <button id="stop-country-scan" class="action-button" data-lang="stop-scan" style="display:none;">Durdur</button>
+            <div id="scan-progress" style="margin-top:10px; color:#ccc;"></div>
+        </div>
+
+        <div class="sidebar-section">
+            <h3 data-lang="export-title">Veri İndirme</h3>
+            <input type="text" id="export-search-term" data-lang-placeholder="export-search-placeholder" placeholder="Arama terimi (örn: country:TR port:80)">
+            <input type="text" id="export-country" data-lang-placeholder="export-country-placeholder" placeholder="Ülke filtresi (örn: Turkey)">
+            
+            <div class="field-selector" id="field-selector">
+                <label class="field-checkbox">
+                    <input type="checkbox" value="ip" checked> IP
+                </label>
+                <label class="field-checkbox">
+                    <input type="checkbox" value="port" checked> Port
+                </label>
+                <label class="field-checkbox">
+                    <input type="checkbox" value="country"> Country
+                </label>
+                <label class="field-checkbox">
+                    <input type="checkbox" value="city"> City
+                </label>
+                <label class="field-checkbox">
+                    <input type="checkbox" value="region_code"> Region
+                </label>
+                <label class="field-checkbox">
+                    <input type="checkbox" value="country_code"> Country Code
+                </label>
+                <label class="field-checkbox">
+                    <input type="checkbox" value="lat"> Latitude
+                </label>
+                <label class="field-checkbox">
+                    <input type="checkbox" value="lng"> Longitude
+                </label>
+                <label class="field-checkbox">
+                    <input type="checkbox" value="term"> Search Term
+                </label>
+            </div>
+
+            <div class="export-options">
+                <select class="separator-type" id="separator-type">
+                    <option value="comma" data-lang="format-comma">CSV (virgülle ayrılmış)</option>
+                    <option value="semicolon" data-lang="format-semicolon">CSV (noktalı virgülle ayrılmış)</option>
+                    <option value="tab" data-lang="format-tab">TSV (tab ile ayrılmış)</option>
+                    <option value="custom" data-lang="format-custom">IP:Port formatı</option>
+                </select>
+                <button class="action-button" id="export-data" data-lang="export-button">Verileri İndir</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="map"></div>
+    <div id="loading" style="display:none;" data-lang="loading">Yükleniyor...</div>
+    <div class="notification" id="notification"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+    <script>
+        // Haritayı başlat - Koyu tema
+        var map = L.map('map').setView([39.0, 35.0], 5);
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 18,
+            attribution: '© Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+    }).addTo(map);
+
+        // Çizim kontrollerini ekle
+    var drawnItems = new L.FeatureGroup();
+    map.addLayer(drawnItems);
+        
+    var drawControl = new L.Control.Draw({
+        draw: {
+            marker: false,
+            polyline: false,
+                polygon: false,
+            circle: false,
+            circlemarker: false,
+                rectangle: {
+                    shapeOptions: {
+                        color: '#76b852',
+                        weight: 2
+                    }
+                }
+            },
+            edit: {
+                featureGroup: drawnItems,
+                remove: true
+            }
+    });
+    map.addControl(drawControl);
+
+        let selectedBounds = null;
+
+        // Çizim olaylarını dinle
+    map.on(L.Draw.Event.CREATED, function(e) {
+            drawnItems.clearLayers();
+        var layer = e.layer;
+        drawnItems.addLayer(layer);
+            
+        if (e.layerType === 'rectangle') {
+                selectedBounds = layer.getBounds();
+                showSearchModal();
+            }
+        });
+
+        // Silme olayını dinle
+        map.on(L.Draw.Event.DELETED, function() {
+            drawnItems.clearLayers();
+        });
+
+        // Modal işlevleri
+        function showSearchModal() {
+            document.getElementById('modalOverlay').style.display = 'block';
+            document.getElementById('searchModal').style.display = 'block';
+            document.getElementById('search-term').focus();
+        }
+
+        function hideSearchModal() {
+            document.getElementById('modalOverlay').style.display = 'none';
+            document.getElementById('searchModal').style.display = 'none';
+            document.getElementById('search-term').value = '';
+        }
+
+        // Arama başlatma
+        document.getElementById('startSearch').onclick = function() {
+            const term = document.getElementById('search-term').value.trim();
+            
+            if (!term) {
+                alert('Lütfen bir arama terimi girin!');
+                return;
+            }
+            
+            if (!selectedBounds) {
+                alert('Lütfen haritadan bir alan seçin!');
+                return;
+            }
+
+            const north = selectedBounds.getNorth();
+            const south = selectedBounds.getSouth();
+            const east = selectedBounds.getEast();
+            const west = selectedBounds.getWest();
+            
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('loading').innerText = 'Seçili alan taranıyor...';
+            
+            hideSearchModal();
+            
+            fetch('/api/scan_bounds', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    north, south, east, west,
+                    term
+                })
+            })
+            .then(r => r.json())
+            .then(resp => {
+                document.getElementById('loading').innerText = resp.message;
+                pollDevicesInBounds(north, south, east, west);
+            })
+            .catch(err => {
+                document.getElementById('loading').innerText = 'Hata oluştu: ' + err;
+                console.error(err);
+            });
+        };
+
+        // İptal butonu
+        document.getElementById('cancelSearch').onclick = function() {
+            hideSearchModal();
+            drawnItems.clearLayers();
+            selectedBounds = null;
+        };
+
+        // Enter tuşu ile arama
+        document.getElementById('search-term').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('startSearch').click();
+            }
+        });
+
+        // Modal dışına tıklama ile kapatma
+        document.getElementById('modalOverlay').onclick = function() {
+            hideSearchModal();
+            drawnItems.clearLayers();
+            selectedBounds = null;
+        };
+
+        // İstatistikleri güncelle - tüm veritabanı için
+        function updateGlobalStats() {
+            fetch('/api/global_stats')
+                .then(response => response.json())
+                .then(stats => {
+                    // Toplam sonuç
+                    document.getElementById('results-count').innerText = stats.total.toLocaleString();
+
+                    // Top portları göster
+                    document.getElementById('top-ports').innerHTML = stats.top_ports
+                        .map(([port, count]) => `
+                            <div class="stat-item">
+                                <span>${port}</span>
+                                <span>${count.toLocaleString()}</span>
+                            </div>
+                        `).join('');
+
+                    // Top ülkeleri göster
+                    document.getElementById('top-countries').innerHTML = stats.top_countries
+                        .map(([country, count]) => `
+                            <div class="stat-item">
+                                <span>${country}</span>
+                                <span>${count.toLocaleString()}</span>
+                            </div>
+                        `).join('');
+                })
+                .catch(err => console.error('İstatistik yükleme hatası:', err));
+        }
+
+        // Popup içeriğini güncelle
+        function createCustomPopup(device) {
+            const labels = {
+                tr: {
+                    ip: "IP",
+                    port: "Port",
+                    country: "Ülke",
+                    city: "Şehir",
+                    organization: "Organizasyon",
+                    location: "Konum"
+                },
+                en: {
+                    ip: "IP",
+                    port: "Port",
+                    country: "Country",
+                    city: "City",
+                    organization: "Organization",
+                    location: "Location"
+                }
+            };
+
+            return `
+                <div class="custom-popup">
+                    <h3>${translations[currentLang]["device-details"]}</h3>
+                    <table>
+                        <tr>
+                            <td>${labels[currentLang].ip}:</td>
+                            <td>${device.ip}</td>
+                        </tr>
+                        <tr>
+                            <td>${labels[currentLang].port}:</td>
+                            <td><span class="port-badge">${device.port}</span></td>
+                        </tr>
+                        <tr>
+                            <td>${labels[currentLang].country}:</td>
+                            <td>${device.Country}</td>
+                        </tr>
+                        <tr>
+                            <td>${labels[currentLang].city}:</td>
+                            <td>${device.city || translations[currentLang]["unknown"]}</td>
+                        </tr>
+                        ${device.Organization ? `
+                        <tr>
+                            <td>${labels[currentLang].organization}:</td>
+                            <td>${device.Organization}</td>
+                        </tr>
+                        ` : ''}
+                        <tr>
+                            <td>${labels[currentLang].location}:</td>
+                            <td>${device.lat}, ${device.lng}</td>
+                        </tr>
+                    </table>
+                    <div class="button-container">
+                        <button onclick="window.open('http://${device.ip}:${device.port}', '_blank')" class="popup-button">
+                            ${translations[currentLang]["open-connection"]}
+                        </button>
+                        <button onclick="window.open('https://www.shodan.io/host/${device.ip}', '_blank')" class="popup-button shodan">
+                            ${translations[currentLang]["view-on-shodan"]}
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Cihazları haritada göster
+        function renderDevices(devices) {
+            document.getElementById('loading').style.display = 'none';
+            if (!devices.length) {
+                document.getElementById('loading').innerText = 'Hiç cihaz bulunamadı.';
+                document.getElementById('loading').style.display = 'block';
+                return;
+            }
+
+            if (window.markers) {
+                window.markers.forEach(m => map.removeLayer(m));
+            }
+            window.markers = [];
+
+            devices.forEach(function(device) {
+                if (device.lat && device.lng) {
+                    var marker = L.marker([device.lat, device.lng]).addTo(map);
+                    marker.bindPopup(createCustomPopup(device), {
+                        maxWidth: 300,
+                        className: 'custom-popup'
+                    });
+                    window.markers.push(marker);
+                }
+            });
+
+            // Global istatistikleri güncelle
+            updateGlobalStats();
+        }
+
+        // Bildirim gösterme fonksiyonu
+        function showNotification(message, duration = 3000) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.style.display = 'block';
+            
+            // Belirli süre sonra bildirimi kaldır
+            setTimeout(() => {
+                notification.style.animation = 'fadeOut 0.3s ease-out';
+                setTimeout(() => {
+                    notification.style.display = 'none';
+                    notification.style.animation = '';
+                }, 300);
+            }, duration);
+        }
+
+        // Seçili alanı temizle
+        function clearSelection() {
+            drawnItems.clearLayers();
+            selectedBounds = null;
+        }
+
+        // Polling fonksiyonunu güncelle
+        function pollDevicesInBounds(north, south, east, west) {
+            let lastCount = 0;
+            let firstPoll = true;
+            let hasShownNotification = false;
+            
+            const interval = setInterval(() => {
+                fetch('/api/devices_in_bounds', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({north, south, east, west})
+                })
+                .then(r => r.json())
+                .then(devices => {
+                    renderDevices(devices);
+                    
+                    if (devices.length > lastCount) {
+                        document.getElementById('loading').innerText = `${devices.length} cihaz bulundu.`;
+                        
+                        if (!firstPoll && !hasShownNotification) {
+                            const newDevices = devices.length - lastCount;
+                            showNotification(`${newDevices} yeni cihaz bulundu!`);
+                            hasShownNotification = true;
+                            
+                            // Yeni cihazlar bulunduğunda seçimi temizle
+                            setTimeout(() => {
+                                clearSelection();
+                            }, 2000);
+                            
+                        clearInterval(interval);
+                        }
+                    }
+                    
+                    firstPoll = false;
+                    lastCount = devices.length;
+                })
+                .catch(err => {
+                    console.error('Polling error:', err);
+                    clearInterval(interval);
+                });
+            }, 2000);
+            
+            // Maksimum 30 saniye sonra polling'i durdur
+            setTimeout(() => {
+                clearInterval(interval);
+                if (lastCount === 0) {
+                    document.getElementById('loading').innerText = 'Bu alanda hiç cihaz bulunamadı.';
+                    if (!hasShownNotification) {
+                        showNotification('Bu alanda hiç cihaz bulunamadı.');
+                        hasShownNotification = true;
+                    }
+                    // Sonuç bulunamadığında seçimi temizle
+                    setTimeout(() => {
+                        clearSelection();
+                    }, 2000);
+                }
+                setTimeout(() => {
+                    document.getElementById('loading').style.display = 'none';
+                }, 3000);
+            }, 30000);
+        }
+
+        // Ülke tarama işlemleri
+        let scanInProgress = false;
+        let initialIPCount = 0;
+        let notificationShown = false;
+        let gridTotal = 0;
+        let gridCurrent = 0;
+        let checkInterval = null;
+
+        document.getElementById('start-country-scan').onclick = function(e) {
+            e.preventDefault();
+            if (scanInProgress) return;
+            
+            const country = document.getElementById('country-name').value;
+            const term = document.getElementById('country-search-term').value.trim();
+            const gridSize = document.getElementById('grid-size').value;
+            
+            if (!country || !term) {
+                document.getElementById('scan-progress').innerText = translations[currentLang]["no-fields-selected"];
+                return;
+            }
+
+            // Reset monitoring variables
+            notificationShown = false;
+            gridTotal = 0;
+            gridCurrent = 0;
+            
+            // Başlangıçtaki IP sayısını al
+            fetch('/api/global_stats')
+                .then(r => r.json())
+                .then(stats => {
+                    initialIPCount = stats.total;
+                    startScan(country, term, gridSize);
+                });
+        };
+
+        function startScan(country, term, gridSize) {
+            fetch('/api/scan_country', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({country, term, grid_size_km: gridSize})
+            })
+            .then(r => r.json())
+            .then(resp => {
+                document.getElementById('scan-progress').innerText = translations[currentLang]["scan-started"]
+                    .replace('{country}', country)
+                    .replace('{total}', resp.total_grids);
+                
+                document.getElementById('start-country-scan').style.display = 'none';
+                document.getElementById('stop-country-scan').style.display = '';
+                scanInProgress = true;
+
+                // Start monitoring with interval
+                if (checkInterval) {
+                    clearInterval(checkInterval);
+                }
+                checkInterval = setInterval(checkScanProgress, 2000);
+            });
+        }
+
+        function checkScanProgress() {
+            if (!scanInProgress) {
+                if (checkInterval) {
+                    clearInterval(checkInterval);
+                    checkInterval = null;
+                }
+                return;
+            }
+
+            // İlerlemeyi kontrol et
+            fetch('/api/scan_progress')
+                .then(r => r.json())
+                .then(progress => {
+                    if (progress.status === 'no_scan') {
+                        stopScan();
+                        return;
+                    }
+
+                    // İlerleme durumunu güncelle
+                    document.getElementById('scan-progress').innerText = translations[currentLang]["scan-progress"]
+                        .replace('{current}', progress.current)
+                        .replace('{total}', progress.total);
+
+                    if (progress.status === 'completed') {
+                        // Son durumu kontrol et
+                        fetch('/api/global_stats')
+                            .then(r => r.json())
+                            .then(stats => {
+                                const newIPCount = stats.total - initialIPCount;
+                                if (!notificationShown) {
+                                    if (newIPCount > 0) {
+                                        showNotification(translations[currentLang]["scan-complete"]
+                                            .replace('{count}', newIPCount)
+                                            .replace('{total}', progress.total));
+                                    } else {
+                                        showNotification(translations[currentLang]["scan-no-results"]
+                                            .replace('{total}', progress.total));
+                                    }
+                                    notificationShown = true;
+                                }
+                                stopScan();
+                            });
+                    }
+            })
+            .catch(err => {
+                    console.error('Progress check error:', err);
+                    stopScan();
+                });
+        }
+
+        function stopScan() {
+            scanInProgress = false;
+            if (checkInterval) {
+                clearInterval(checkInterval);
+                checkInterval = null;
+            }
+            document.getElementById('start-country-scan').style.display = '';
+            document.getElementById('stop-country-scan').style.display = 'none';
+        }
+
+        document.getElementById('stop-country-scan').onclick = function(e) {
+            e.preventDefault();
+            document.getElementById('scan-progress').innerText = translations[currentLang]["scan-stopped"];
+            stopScan();
+        };
+
+        // Harita event listener'ları
+        map.on('moveend', function() {
+            const bounds = map.getBounds();
+            fetch('/api/devices_in_bounds', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    north: bounds.getNorth(),
+                    south: bounds.getSouth(),
+                    east: bounds.getEast(),
+                    west: bounds.getWest()
+                })
+            })
+            .then(r => r.json())
+            .then(devices => renderDevices(devices));
+        });
+
+        map.on('zoomend', function() {
+            const bounds = map.getBounds();
+            fetch('/api/devices_in_bounds', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    north: bounds.getNorth(),
+                    south: bounds.getSouth(),
+                    east: bounds.getEast(),
+                    west: bounds.getWest()
+                })
+            })
+            .then(r => r.json())
+            .then(devices => renderDevices(devices));
+        });
+
+        // İlk yükleme
+        const bounds = map.getBounds();
+        fetch('/api/devices_in_bounds', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                north: bounds.getNorth(),
+                south: bounds.getSouth(),
+                east: bounds.getEast(),
+                west: bounds.getWest()
+            })
+        })
+        .then(r => r.json())
+        .then(devices => renderDevices(devices));
+
+        // Sayfa yüklendiğinde global istatistikleri yükle
+        document.addEventListener('DOMContentLoaded', function() {
+            updateGlobalStats();
+        });
+
+        // Dil çevirileri
+        const translations = {
+            tr: {
+                "search-title": "Arama Terimi Girin",
+                "search-placeholder": "Örn: mikrotik, cisco, product:nginx, org:microsoft",
+                "start-search": "Aramayı Başlat",
+                "cancel": "İptal",
+                "total-results": "Toplam Sonuç",
+                "top-ports": "En Çok Kullanılan Portlar",
+                "top-countries": "En Çok Bulunan Ülkeler",
+                "scan-options": "Tarama Seçenekleri",
+                "country-name-placeholder": "Ülke adı (örn: Turkey)",
+                "country-search-placeholder": "Örn: server:apache, os:linux, ssl:true",
+                "start-scan": "Tarama Başlat",
+                "stop-scan": "Durdur",
+                "loading": "Yükleniyor...",
+                "devices-found": "{count} cihaz bulundu.",
+                "no-devices": "Bu alanda hiç cihaz bulunamadı.",
+                "new-devices": "{count} yeni cihaz bulundu!",
+                "device-details": "Cihaz Detayları",
+                "open-connection": "Bağlantıyı Aç",
+                "view-on-shodan": "Shodan'da Gör",
+                "unknown": "Bilinmiyor",
+                "export-title": "Veri İndirme",
+                "export-search-placeholder": "Arama terimi (örn: country:TR port:80)",
+                "export-country-placeholder": "Ülke filtresi (örn: Turkey)",
+                "export-button": "Verileri İndir",
+                "no-fields-selected": "Lütfen en az bir alan seçin",
+                "no-results": "İndirilebilecek veri bulunamadı",
+                "downloading": "Veriler indiriliyor...",
+                "format-comma": "CSV (virgülle ayrılmış)",
+                "format-semicolon": "CSV (noktalı virgülle ayrılmış)",
+                "format-tab": "TSV (tab ile ayrılmış)",
+                "format-custom": "IP:Port formatı",
+                "scan-progress": "{current}/{total} grid tamamlandı",
+                "scan-started": "{country} için {total} grid bulundu. Tarama başlatılıyor...",
+                "scan-complete": "Tarama tamamlandı! {count} yeni IP eklendi. (Toplam {total} grid)",
+                "scan-no-results": "Tarama tamamlandı fakat yeni IP bulunamadı. (Toplam {total} grid)",
+                "scan-stopped": "Tarama durduruldu."
+            },
+            en: {
+                "search-title": "Enter Search Term",
+                "search-placeholder": "Ex: mikrotik, cisco, product:nginx, org:microsoft",
+                "start-search": "Start Search",
+                "cancel": "Cancel",
+                "total-results": "Total Results",
+                "top-ports": "Most Used Ports",
+                "top-countries": "Top Countries",
+                "scan-options": "Scan Options",
+                "country-name-placeholder": "Country name (ex: United States)",
+                "country-search-placeholder": "Ex: server:apache, os:linux, ssl:true",
+                "start-scan": "Start Scan",
+                "stop-scan": "Stop",
+                "loading": "Loading...",
+                "devices-found": "{count} devices found.",
+                "no-devices": "No devices found in this area.",
+                "new-devices": "{count} new devices found!",
+                "device-details": "Device Details",
+                "open-connection": "Open Connection",
+                "view-on-shodan": "View on Shodan",
+                "unknown": "Unknown",
+                "export-title": "Export Data",
+                "export-search-placeholder": "Search term (ex: country:TR port:80)",
+                "export-country-placeholder": "Country filter (ex: Turkey)",
+                "export-button": "Download Data",
+                "no-fields-selected": "Please select at least one field",
+                "no-results": "No data available for download",
+                "downloading": "Downloading data...",
+                "format-comma": "CSV (comma separated)",
+                "format-semicolon": "CSV (semicolon separated)",
+                "format-tab": "TSV (tab separated)",
+                "format-custom": "IP:Port format",
+                "scan-progress": "{current}/{total} grids completed ({percent}%)",
+                "scan-started": "Grid scanning started for {country}.",
+                "scan-complete": "Scan completed! Total {count} new IPs added. ({total} grids scanned)",
+                "scan-no-results": "Scan completed but no new IPs found. ({total} grids scanned)",
+                "scan-stopped": "Scan stopped."
+            }
+        };
+
+        let currentLang = 'tr';
+
+        // Dil değiştirme fonksiyonu
+        function toggleLanguage() {
+            currentLang = currentLang === 'tr' ? 'en' : 'tr';
+            document.getElementById('langSwitch').textContent = currentLang === 'tr' ? 'EN' : 'TR';
+            updatePageLanguage();
+        }
+
+        // Sayfa dilini güncelleme
+        function updatePageLanguage() {
+            // data-lang attribute'u olan elementleri güncelle
+            document.querySelectorAll('[data-lang]').forEach(element => {
+                const key = element.getAttribute('data-lang');
+                if (translations[currentLang][key]) {
+                    if (element.tagName === 'OPTION') {
+                        element.text = translations[currentLang][key];
+                    } else {
+                        element.textContent = translations[currentLang][key];
+                    }
+                }
+            });
+
+            // Select menüsündeki options'ları güncelle
+            document.querySelectorAll('option[data-lang]').forEach(option => {
+                const key = option.getAttribute('data-lang');
+                if (translations[currentLang][key]) {
+                    option.text = translations[currentLang][key];
+                }
+            });
+
+            // Placeholder'ları güncelle
+            document.querySelectorAll('[data-lang-placeholder]').forEach(element => {
+                const key = element.getAttribute('data-lang-placeholder');
+                if (translations[currentLang][key]) {
+                    element.placeholder = translations[currentLang][key];
+                }
+            });
+
+            // Mevcut bildirimleri ve yükleme mesajlarını güncelle
+            updateDynamicContent();
+        }
+
+        // Dinamik içerikleri güncelle
+        function updateDynamicContent() {
+            const loading = document.getElementById('loading');
+            if (loading.textContent.includes('cihaz bulundu')) {
+                const count = loading.textContent.split(' ')[0];
+                loading.textContent = translations[currentLang]["devices-found"].replace('{count}', count);
+            }
+        }
+
+        // Veri indirme fonksiyonları
+        document.getElementById('export-data').addEventListener('click', function() {
+            const searchTerm = document.getElementById('export-search-term').value.trim();
+            const country = document.getElementById('export-country').value.trim();
+            const selectedFields = Array.from(document.querySelectorAll('#field-selector input:checked')).map(cb => cb.value);
+            const separatorType = document.getElementById('separator-type').value;
+
+            if (selectedFields.length === 0) {
+                showNotification(translations[currentLang]["no-fields-selected"]);
+                return;
+            }
+
+            // Yükleniyor bildirimi göster
+            showNotification(translations[currentLang]["downloading"]);
+
+            // API'ye sorgu gönder
+            fetch('/api/devices_by_term', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    term: searchTerm,
+                    country: country
+                })
+            })
+            .then(r => r.json())
+            .then(devices => {
+                if (!devices || devices.length === 0) {
+                    showNotification(translations[currentLang]["no-results"]);
+                    return;
+                }
+
+                let separator = ',';
+                let extension = 'csv';
+                switch(separatorType) {
+                    case 'semicolon':
+                        separator = ';';
+                        break;
+                    case 'tab':
+                        separator = '\t';
+                        extension = 'tsv';
+                        break;
+                    case 'custom':
+                        // IP:Port özel formatı için
+                        const content = devices.map(d => `${d.ip}:${d.port}`).join('\n');
+                        downloadFile(content, `shodan_export_${Date.now()}.txt`);
+                        return;
+                }
+
+                // Normal CSV/TSV formatı için
+                const headers = selectedFields.join(separator);
+                const rows = devices.map(device => {
+                    return selectedFields.map(field => device[field] || '').join(separator);
+                });
+
+                const content = [headers, ...rows].join('\n');
+                downloadFile(content, `shodan_export_${Date.now()}.${extension}`);
+            })
+            .catch(err => {
+                console.error('Export error:', err);
+                showNotification('Export error: ' + err.message);
+            });
+        });
+
+        function downloadFile(content, filename) {
+            const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            if (navigator.msSaveBlob) {
+                navigator.msSaveBlob(blob, filename);
+            return;
+            }
+            link.href = URL.createObjectURL(blob);
+            link.setAttribute('download', filename);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>
